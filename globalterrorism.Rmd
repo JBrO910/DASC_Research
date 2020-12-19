@@ -23,14 +23,20 @@ When you click the **Knit** button a document will be generated that includes bo
 
 ```{r}
 globalterrorism <- read.csv("globalterrorism.csv", header = TRUE)
-summary(globalterrorism)
+globalterrorism
 ```
 
 ## Deleting columns with more than 90% missing values
 
 ```{r}
+na_count <- sapply(globalterrorism, function(y) sum(length(which(is.na(y)))))
+na_count <- data.frame(na_count)
+na_count
+```
+
+```{r}
 library(dplyr)
-globalterrorismdb_0718dist <- select(globalterrorismdb_0718dist, 
+globalterrorism <- select(globalterrorism, 
                                      -resolution,
                                      -attacktype2,
                                      -attacktype2_txt,
@@ -91,7 +97,7 @@ globalterrorismdb_0718dist <- select(globalterrorismdb_0718dist,
                                      -hostkidoutcome,
                                      -hostkidoutcome_txt,
                                      -nreleased)
-summary(globalterrorismdb_0718dist)
+
 ```
 
 ## Including Plots
