@@ -48,12 +48,10 @@ na_percentage_table <- data.frame(na_count_table, na_percentage)
 na_percentage_table
 
 # Adapt percentage table with
-na_percentage_filtered <- subset(na_percentage_table, na_percentage_table$na_percentage > 0.90)
+na_percentage_filtered <- subset(na_percentage_table, na_percentage_table$na_percentage < 0.90)
 na_percentage_filtered
 
-#globalterrorism_test <- globalterrorism %>% select_if(is.numeric)
-globalterrorism_test <- globalterrorism %>% select(matches(na_percentage_filtered$rn))
-globalterrorism_test
+globalterrorism %>% select(one_of(na_percentage_filtered$rn))
 ```
 
 ```{r}
