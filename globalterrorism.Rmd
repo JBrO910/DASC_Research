@@ -25,8 +25,6 @@ library(dplyr)
 
 ## Importing dataset
 
-We are replacing blank table cells with NA which allows us to use the is.na() function.
-
 ```{r}
 globalterrorism <- read.csv("globalterrorism.csv", na.strings = c("", "NA"), header = TRUE)
 #globalterrorism
@@ -47,75 +45,16 @@ na_percentage <- sapply(na_count_table$na_count, function(x) as.double(format(ro
 na_percentage_table <- data.frame(na_count_table, na_percentage)
 na_percentage_table
 
-# Adapt percentage table with
+# Filtering so that only the rows exist that are have less than 90 % missing values
 na_percentage_filtered <- subset(na_percentage_table, na_percentage_table$na_percentage < 0.90)
 na_percentage_filtered
 
+# Removal of the columns
 globalterrorism %>% select(one_of(na_percentage_filtered$rn))
 ```
 
 ```{r}
-globalterrorism <- select(globalterrorism, 
-                                     -resolution,
-                                     -attacktype2,
-                                     -attacktype2_txt,
-                                     -attacktype3,
-                                     -attacktype3_txt,
-                                     -targtype2,
-                                     -targtype2_txt,
-                                     -targsubtype2,
-                                     -targsubtype2_txt,
-                                     -corp2,
-                                     -target2,
-                                     -natlty2,
-                                     -natlty2_txt,
-                                     -targtype3,
-                                     -targtype3_txt,
-                                     -targsubtype3,
-                                     -targsubtype3_txt,
-                                     -corp3,
-                                     -target3,
-                                     -natlty3,
-                                     -gsubname,
-                                     -gname2,
-                                     -gsubname2,
-                                     -gname3,
-                                     -gsubname3,
-                                     -guncertain2,
-                                     -guncertain3,
-                                     -claim2,
-                                     -claimmode2,
-                                     -claimmode2_txt,
-                                     -claim3,
-                                     -claimmode3,
-                                     -claimmode3_txt,
-                                     -compclaim,
-                                     -weaptype2,
-                                     -weaptype2_txt,
-                                     -weapsubtype2,
-                                     -weapsubtype2_txt,
-                                     -weaptype3,
-                                     -weaptype3_txt,
-                                     -weapsubtype3,
-                                     -weapsubtype3_txt,
-                                     -weaptype4,
-                                     -weaptype4_txt,
-                                     -weapsubtype4,
-                                     -weapsubtype4_txt,
-                                     -nhostkid,
-                                     -nhostkidus,
-                                     -nhours,
-                                     -ndays,
-                                     -divert,
-                                     -kidhijcountry,
-                                     -ransomamt,
-                                     -ransomamtus,
-                                     -ransompaid,
-                                     -ransompaidus,
-                                     -ransomnote,
-                                     -hostkidoutcome,
-                                     -hostkidoutcome_txt,
-                                     -nreleased)
+
 
 ```
 
