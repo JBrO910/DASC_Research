@@ -15,15 +15,20 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-
-
+## Libraries
+```{r}
+install.packages("data.table")
+library(data.table)
+```
 
 
 ## Importing dataset
 
+We are replacing blank table cells with NA which allows us to use the is.na() function.
+
 ```{r}
-globalterrorism <- read.csv("globalterrorism.csv", header = TRUE)
-globalterrorism
+globalterrorism <- read.csv("globalterrorism.csv", na.strings = c("", "NA"), header = TRUE)
+#globalterrorism
 ```
 
 ## Deleting columns with more than 90% missing values
@@ -31,7 +36,15 @@ globalterrorism
 ```{r}
 na_count <- sapply(globalterrorism, function(y) sum(length(which(is.na(y)))))
 na_count <- data.frame(na_count)
-na_count
+# Get row name as a column
+# na_count_table <- setDT(na_count, keep.rownames = TRUE)[]
+
+percentage <- function(x,column) {
+  (x[,column])/nrow(globalterrorism)
+} 
+na_percentage <- sapply(na_count, function(x) x/nrow(globalterrorism))
+na_percentage <- data.frame(na_percentage)
+na_percentage
 ```
 
 ```{r}
