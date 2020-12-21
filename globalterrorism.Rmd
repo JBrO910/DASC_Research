@@ -19,6 +19,7 @@ When you click the **Knit** button a document will be generated that includes bo
 ```{r}
 install.packages("data.table")
 library(data.table)
+library(dplyr)
 ```
 
 
@@ -36,19 +37,26 @@ globalterrorism <- read.csv("globalterrorism.csv", na.strings = c("", "NA"), hea
 ```{r}
 na_count <- sapply(globalterrorism, function(y) sum(length(which(is.na(y)))))
 na_count <- data.frame(na_count)
-# Get row name as a column
-# na_count_table <- setDT(na_count, keep.rownames = TRUE)[]
 
-percentage <- function(x,column) {
-  (x[,column])/nrow(globalterrorism)
-} 
-na_percentage <- sapply(na_count, function(x) x/nrow(globalterrorism))
-na_percentage <- data.frame(na_percentage)
-na_percentage
+# Get row name as a column 
+na_count_table <- setDT(na_count, keep.rownames = TRUE)[]
+na_count_table <- data.frame(na_count_table)
+
+# Calculate the percentage of missing values
+na_percentage <- sapply(na_count_table$na_count, function(x) as.double(format(round( x/nrow(globalterrorism ), 2), nsmall = 2)))
+na_percentage_table <- data.frame(na_count_table, na_percentage)
+na_percentage_table
+
+# Adapt percentage table with
+na_percentage_filtered <- subset(na_percentage_table, na_percentage_table$na_percentage > 0.90)
+na_percentage_filtered
+
+#globalterrorism_test <- globalterrorism %>% select_if(is.numeric)
+globalterrorism_test <- globalterrorism %>% select(matches(na_percentage_filtered$rn))
+globalterrorism_test
 ```
 
 ```{r}
-library(dplyr)
 globalterrorism <- select(globalterrorism, 
                                      -resolution,
                                      -attacktype2,
