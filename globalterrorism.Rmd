@@ -25,12 +25,16 @@ library(dplyr)
 
 ## Importing dataset
 
+We are also replacing the empty cells with "NA" cells to make the use of the is.na easier. This helps us tidying up the dataset.
+
 ```{r}
 globalterrorism <- read.csv("globalterrorism.csv", na.strings = c("", "NA"), header = TRUE)
 #globalterrorism
 ```
 
 ## Deleting columns with more than 90% missing values
+
+As we looked over the dataset we have found out that many columns have a lot or almost none filled rows. So we decided that all columns that have more than 90 % missing values shall be removed. Our intention for this is that we only use the columns that actually have some filled out cells.
 
 ```{r}
 na_count <- sapply(globalterrorism, function(y) sum(length(which(is.na(y)))))
@@ -50,7 +54,7 @@ na_percentage_filtered <- subset(na_percentage_table, na_percentage_table$na_per
 na_percentage_filtered
 
 # Removal of the columns
-globalterrorism %>% select(one_of(na_percentage_filtered$rn))
+globalterrorism <- globalterrorism %>% select(one_of(na_percentage_filtered$rn))
 ```
 
 ```{r}
