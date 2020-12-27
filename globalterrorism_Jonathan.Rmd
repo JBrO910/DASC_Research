@@ -15,15 +15,32 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
 ## Libraries
 ```{r}
-install.packages("data.table")
+#install.packages("data.table")
 library(data.table)
 library(dplyr)
 library(ggplot2)
-install.packages("maps")
-require(maps)
-require(viridis)
+#install.packages("sf")
+library(sf)
+#install.packages("mapview")
+library(mapview)
+#install.packages("ggmap")
+library(ggmap)
+#install.packages("mapdata")
+library(mapdata)
+#install.packages("gganimate")
+library(gganimate)
 ```
 
 
@@ -54,7 +71,7 @@ na_count <- data.frame(na_count)
 na_count_table <- setDT(na_count, keep.rownames = TRUE)[]
 na_count_table <- data.frame(na_count_table)
 
-# Calculate the percentage of missing values
+# Calculate the percentage of missing values. Limit to two decimals after the dot.
 na_percentage <- sapply(na_count_table$na_count, function(x) as.double(format(round( x/nrow(globalterrorism ), 2), nsmall = 2)))
 na_percentage_table <- data.frame(na_count_table, na_percentage)
 na_percentage_table
@@ -68,54 +85,41 @@ globalterrorism_done <- globalterrorism %>% select(one_of(na_percentage_filtered
 globalterrorism_done
 ```
 
-```{r}
-#globalterrorism_done <- globalterrorism %>% 
-#  sapply(function(y) sum(length(which(is.na(y))))) %>% 
-#  setDT(keep.rownames = TRUE)[] %>% 
-#  sapply(function(x) as.double(format(round( x/nrow(globalterrorism ), 2), nsmall = 2))) %>% 
-#  subset(na_percentage < 0.90) %>% 
-#  select(one_of(rn)) 
 
+
+```{r}
+# Retrieving all coordinates from the dataset. But the NA values have to be filtered out first.
+globalterrorism_coordinates <- globalterrorism_done %>% filter(!is.na(globalterrorism_done$longitude)) 
+#globalterrorism_coordinates <- data.frame(globalterrorism_coordinates$longitude, globalterrorism_coordinates$latitude)
+
+# We have found out that one of the coordinates has been added incorrect. Therefore we are also filtering that out.
+globalterrorism_coordinates <- globalterrorism_coordinates %>% filter(globalterrorism_coordinates$longitude > -180)
+globalterrorism_coordinates
+
+
+map_base <- map("worldHires", fill = T, plot = F)
+map_base <- st_as_sf(map_base)
+map_base <- st_make_valid(map_base)
+
+points_map <- ggplot() + geom_sf(data = map_base) + 
+  geom_point(aes(x = longitude, y = latitude),
+             data = globalterrorism_coordinates, colour = "purple", size = 1) +
+  labs(x = "Longitude", y = "Latitude", fill = "") +
+  theme_bw() +
+  theme(panel.grid = element_line(colour = "transparent"),
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14))
+points_map
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+## Number of terrorism attacks every year (excluding 1993)
 
-```{r pressure, echo=FALSE}
-#plot(pressure)
+The Global Terrorism Database (GTD) lost the data of the year 1993 due to a compilation error. That's why we don't have any data from that particular year.
 
-world_map <- map_data("world")
-#ggplot(world_map, aes(x = long, y = lat, group = group)) +
-#  geom_polygon(fill="lightgray", colour = "white")
-
-#world <- ne_countries(scale = "medium", returnclass = "sf")
-
-#install.packages("sf")
-#install.packages("geometry")
-
-
-
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 ```{r}
-#install.packages(c("cowplot", "googleway", "ggrepel", 
-#"ggspatial", "libwgeom", "rnaturalearth", "rnaturalearthdata"))
-
-library("ggplot2")
-theme_set(theme_bw())
-library("sf")
-
-library("rnaturalearth")
-library("rnaturalearthdata")
-
-world <- ne_countries(scale = "medium", returnclass = "sf")
-class(world)
-
-ggplot(data = world) +
-    geom_sf() +
-    geom_point(data = globalterrorism_done, aes(x = longitude, y = latitude), size = 4, 
-        shape = 23, fill = "darkred") +
-    coord_sf(xlim = c(-88, -78), ylim = c(24.5, 33), expand = FALSE)
+ggplot(data = globalterrorism_done, mapping = aes(iyear, sum(iyear))) +
+  geom_bar(stat = "identity")
 ```
