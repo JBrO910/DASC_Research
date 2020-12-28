@@ -11,23 +11,32 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Introduction 
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+We are going to analyze the Global Terrorism Database (GTD). It is an open 
+source database which holds information on terrorism attacks from 1970 to 2017,
+excluding 1993. The GTD lost the data of the year 1993 due to a compilation 
+error. That's why we don't have any data from that particular year. 
+The database is maintained by the National Consortium for the Study of 
+Terrorism and Responses to Terrorism (START). The GTD includes over 180,000 
+attacks around the world. 
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+Our research question is: Have terrorism attacks developed over the years?
+We are going to focus with the regions of the terrorism attacks, if they 
+succeeded or not and look if the amount of victims increased or decreased.
+These variables are dependent on the year of the attack. 
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
 ## Libraries
+
+These are libraries we are going to use for our research. We are using an older
+version of the "gganimate" package since the new one has not been well 
+documented for our needs.
+
+Since we have a focus on the location of the terrorism attacks, we thought that
+we can visualize them in a map. Therefore we use the libraries "ggmap" and 
+"mapdata".
+
 ```{r}
 #remove.packages("gganimate")
 #install.packages("data.table")
@@ -51,7 +60,10 @@ library(gganimate)
 
 ## Importing dataset
 
-We are also replacing the empty cells with "NA" cells to make the use of the is.na easier. This helps us tidying up the dataset.
+We have uploaded a compressed zip file to a public repository, in case that the 
+dataset gets removed from our source.  
+We are also replacing the empty cells with "NA" cells to make the use of the 
+is.na easier. This helps us tidying up the dataset.
 
 ```{r}
 if (!file.exists("globalterrorism_dataset.zip")) {
@@ -66,7 +78,10 @@ globalterrorism <- read.csv("globalterrorism.csv", na.strings = c("", "NA"), hea
 
 ## Deleting columns with more than 90% missing values
 
-As we looked over the dataset we have found out that many columns have a lot or almost none filled rows. So we decided that all columns that have more than 90 % missing values shall be removed. Our intention for this is that we only use the columns that actually have some filled out cells.
+As we looked over the dataset, we have found out that many columns have a lot or
+almost none filled rows. So we decided that all columns that have more than 
+90 % missing values shall be removed. Our intention is that we only use the 
+columns that have enough cells with useful data.
 
 ```{r}
 na_count <- sapply(globalterrorism, function(y) sum(length(which(is.na(y)))))
@@ -89,8 +104,11 @@ globalterrorism_done <- globalterrorism %>% select(one_of(na_percentage_filtered
 
 ## World map with all locations of terrorism attacks
 
-We created a map with and set a geom_point for each location of a terrorism attack. In the dataset we have the longitude and latitude coordinates of each terrorism attack. With these coordinates we can set a point on the map.
-We also animated the map by cycling through the years. This helps with the the overall visibility of the map.
+We created a map and set a point for each location of a terrorism attack. 
+In the dataset we have the longitude and latitude coordinates of each 
+terrorism attack. With these coordinates we can set a point on the map.
+We also animated the map by cycling through the years. This helps with the the 
+overall visibility of the map.
 
 WARNING: The compilation of this map may take a few minutes!
 
@@ -139,12 +157,14 @@ gganimate(points_map, interval = 0.2)
 
 ## Number of terrorism attacks every year (excluding 1993)
 
-The Global Terrorism Database (GTD) lost the data of the year 1993 due to a compilation error. That's why we don't have any data from that particular year.
-
 ```{r}
-ggplot(data = globalterrorism_done, mapping = aes(iyear, sum(iyear))) +
-  geom_bar(stat = "identity")
+ggplot(data = globalterrorism_done, mapping = aes(iyear)) +
+  geom_bar(stat = "count")
 ```
+
+
+## Amount of victims 
+
 
 ```{r}
 globalterrorism_kill <- globalterrorism_done %>% filter(!is.na(nkill)) 
@@ -152,6 +172,6 @@ globalterrorism_kill <- globalterrorism_done %>% filter(!is.na(nkill))
 ggplot(data = globalterrorism_kill, mapping = aes(x = iyear, y = nkill)) +
   geom_bar(stat = "identity") +
   xlab("Years") +
-  ylab("Number of deaths") +
-  ggtitle("Number of deaths for each year!")
+  ylab("Amount of victims") +
+  ggtitle("Amount of victims for each year")
 ```
