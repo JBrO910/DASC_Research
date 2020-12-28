@@ -33,13 +33,12 @@ library(dplyr)
 library(ggplot2)
 #install.packages("sf")
 library(sf)
-#install.packages("mapview")
-library(mapview)
 #install.packages("ggmap")
 library(ggmap)
 #install.packages("mapdata")
 library(mapdata)
-#install.packages("gganimate")
+remove.packages("gganimate")
+install.packages("https://github.com/thomasp85/gganimate/archive/v0.1.1.tar.gz", repos = NULL, type = "source")
 library(gganimate)
 ```
 
@@ -86,24 +85,44 @@ globalterrorism_done
 ```
 
 
+## World map with all locations of terrorism attacks
+
+We created a map with and set a geom_point for each location of a terrorism attack. In the dataset we have the longitude and latitude coordinates of each terrorism attack. With these coordinates we can set a point on the map.
+We also animated the map by cycling through the years. This helps with the the overall visibility of the map.
+
+WARNING: The compilation of this map may take a few minutes!
 
 ```{r}
 # Retrieving all coordinates from the dataset. But the NA values have to be filtered out first.
 globalterrorism_coordinates <- globalterrorism_done %>% filter(!is.na(globalterrorism_done$longitude)) 
-#globalterrorism_coordinates <- data.frame(globalterrorism_coordinates$longitude, globalterrorism_coordinates$latitude)
 
 # We have found out that one of the coordinates has been added incorrect. Therefore we are also filtering that out.
 globalterrorism_coordinates <- globalterrorism_coordinates %>% filter(globalterrorism_coordinates$longitude > -180)
 globalterrorism_coordinates
 
+# Create start and end variables for the animation
+map_animation_start <- tibble(iyear = 1969, longitude = 0, latitude = 0)
+map_animation_end <- tibble(iyear = 2018, longitude = 0, latitude = 0)
 
+# Setting up the map
 map_base <- map("worldHires", fill = T, plot = F)
 map_base <- st_as_sf(map_base)
 map_base <- st_make_valid(map_base)
 
+# Adding the points to the map. The start and end variables for the animation are also added here. We are also doing additional labeling for longitude and latitude.
 points_map <- ggplot() + geom_sf(data = map_base) + 
-  geom_point(aes(x = longitude, y = latitude),
-             data = globalterrorism_coordinates, colour = "purple", size = 1) +
+  geom_point(aes(x = longitude, y = latitude,
+                 frame = iyear,
+                 cumulative = TRUE),
+             data = globalterrorism_coordinates, colour = "purple",  size = 1) +
+  geom_point(aes(x = longitude, y = latitude,
+                 frame = iyear,
+                 cumulative = TRUE),
+             data = map_animation_start, colour = "purple", size = 0) +
+  geom_point(aes(x = longitude, y = latitude,
+                 frame = iyear,
+                 cumulative = TRUE),
+             data = map_animation_end, colour = "purple", size = 0) +
   labs(x = "Longitude", y = "Latitude", fill = "") +
   theme_bw() +
   theme(panel.grid = element_line(colour = "transparent"),
@@ -111,7 +130,9 @@ points_map <- ggplot() + geom_sf(data = map_base) +
     axis.text = element_text(size = 16),
     legend.text = element_text(size = 14),
     legend.title = element_text(size = 14))
-points_map
+
+# Start animation with an interval of 0.2 seconds.
+gganimate(points_map, interval = 0.2) 
 ```
 
 
@@ -120,6 +141,7 @@ points_map
 The Global Terrorism Database (GTD) lost the data of the year 1993 due to a compilation error. That's why we don't have any data from that particular year.
 
 ```{r}
+tibble( unique(globalterrorism_done$iyear), (globalterrorism_done$iyear))
 ggplot(data = globalterrorism_done, mapping = aes(iyear, sum(iyear))) +
   geom_bar(stat = "identity")
 ```
