@@ -27,18 +27,22 @@ Note that the `echo = FALSE` parameter was added to the code chunk to prevent pr
 
 ## Libraries
 ```{r}
+#remove.packages("gganimate")
 #install.packages("data.table")
+#install.packages("sf")
+#install.packages("ggmap")
+#install.packages("mapdata")
+#install.packages("devtools")
+#install_github("thomasp85/gganimate", ref = "v0.1.1")
+#install.packages("https://github.com/thomasp85/gganimate/archive/v0.1.1.tar.gz", repos = NULL, type = "source")
+
+#library("devtools")
 library(data.table)
 library(dplyr)
 library(ggplot2)
-#install.packages("sf")
 library(sf)
-#install.packages("ggmap")
 library(ggmap)
-#install.packages("mapdata")
 library(mapdata)
-remove.packages("gganimate")
-install.packages("https://github.com/thomasp85/gganimate/archive/v0.1.1.tar.gz", repos = NULL, type = "source")
 library(gganimate)
 ```
 
@@ -144,4 +148,14 @@ The Global Terrorism Database (GTD) lost the data of the year 1993 due to a comp
 ```{r}
 ggplot(data = globalterrorism_done, mapping = aes(iyear, sum(iyear))) +
   geom_bar(stat = "identity")
+```
+
+```{r}
+globalterrorism_kill <- globalterrorism_done %>% filter(!is.na(nkill)) 
+
+ggplot(data = globalterrorism_kill, mapping = aes(x = iyear, y = nkill)) +
+  geom_bar(stat = "identity") +
+  xlab("Years") +
+  ylab("Number of deaths") +
+  ggtitle("Number of deaths for each year!")
 ```
