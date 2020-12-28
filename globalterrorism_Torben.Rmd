@@ -74,15 +74,12 @@ na_count_table <- data.frame(na_count_table)
 # Calculate the percentage of missing values. Limit to two decimals after the dot.
 na_percentage <- sapply(na_count_table$na_count, function(x) as.double(format(round( x/nrow(globalterrorism ), 2), nsmall = 2)))
 na_percentage_table <- data.frame(na_count_table, na_percentage)
-na_percentage_table
 
 # Filtering so that only the rows exist that are have less than 90 % missing values
 na_percentage_filtered <- subset(na_percentage_table, na_percentage_table$na_percentage < 0.90)
-na_percentage_filtered
 
 # Removal of the columns
 globalterrorism_done <- globalterrorism %>% select(one_of(na_percentage_filtered$rn))
-globalterrorism_done
 ```
 
 

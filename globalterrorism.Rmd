@@ -2,7 +2,9 @@
 title: "Global_Terrorism"
 author: "Jonathan Brocksieper & Torben Westphalen"
 date: "12/16/2020"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -77,15 +79,15 @@ na_count_table <- data.frame(na_count_table)
 # Calculate the percentage of missing values. Limit to two decimals after the dot.
 na_percentage <- sapply(na_count_table$na_count, function(x) as.double(format(round( x/nrow(globalterrorism ), 2), nsmall = 2)))
 na_percentage_table <- data.frame(na_count_table, na_percentage)
-na_percentage_table
+#na_percentage_table
 
 # Filtering so that only the rows exist that are have less than 90 % missing values
 na_percentage_filtered <- subset(na_percentage_table, na_percentage_table$na_percentage < 0.90)
-na_percentage_filtered
+#na_percentage_filtered
 
 # Removal of the columns
 globalterrorism_done <- globalterrorism %>% select(one_of(na_percentage_filtered$rn))
-globalterrorism_done
+#globalterrorism_done
 ```
 
 
@@ -103,7 +105,7 @@ globalterrorism_coordinates <- globalterrorism_done %>% filter(!is.na(globalterr
 
 # We have found out that one of the coordinates has been added incorrect. Therefore we are also filtering that out.
 globalterrorism_coordinates <- globalterrorism_coordinates %>% filter(globalterrorism_coordinates$longitude > -180)
-globalterrorism_coordinates
+#globalterrorism_coordinates
 
 # Create start and end variables for the animation
 map_animation_start <- tibble(iyear = 1969, longitude = 0, latitude = 0)
