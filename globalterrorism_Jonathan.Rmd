@@ -2,7 +2,11 @@
 title: "Global_Terrorism"
 author: "Jonathan Brocksieper & Torben Westphalen"
 date: "12/16/2020"
-output: html_document
+output:
+  pdf_document: default
+  html_document:
+    fig_width: 10
+    fig_height: 10
 ---
 
 ```{r setup, include=FALSE}
@@ -27,18 +31,22 @@ Note that the `echo = FALSE` parameter was added to the code chunk to prevent pr
 
 ## Libraries
 ```{r}
+#remove.packages("gganimate")
 #install.packages("data.table")
+#install.packages("sf")
+#install.packages("ggmap")
+#install.packages("mapdata")
+#install.packages("devtools")
+#install_github("thomasp85/gganimate", ref = "v0.1.1")
+#install.packages("https://github.com/thomasp85/gganimate/archive/v0.1.1.tar.gz", repos = NULL, type = "source")
+
+#library("devtools")
 library(data.table)
 library(dplyr)
 library(ggplot2)
-#install.packages("sf")
 library(sf)
-#install.packages("ggmap")
 library(ggmap)
-#install.packages("mapdata")
 library(mapdata)
-remove.packages("gganimate")
-install.packages("https://github.com/thomasp85/gganimate/archive/v0.1.1.tar.gz", repos = NULL, type = "source")
 library(gganimate)
 ```
 
@@ -73,22 +81,22 @@ na_count_table <- data.frame(na_count_table)
 # Calculate the percentage of missing values. Limit to two decimals after the dot.
 na_percentage <- sapply(na_count_table$na_count, function(x) as.double(format(round( x/nrow(globalterrorism ), 2), nsmall = 2)))
 na_percentage_table <- data.frame(na_count_table, na_percentage)
-na_percentage_table
+#na_percentage_table
 
 # Filtering so that only the rows exist that are have less than 90 % missing values
 na_percentage_filtered <- subset(na_percentage_table, na_percentage_table$na_percentage < 0.90)
-na_percentage_filtered
+#na_percentage_filtered
 
 # Removal of the columns
 globalterrorism_done <- globalterrorism %>% select(one_of(na_percentage_filtered$rn))
-globalterrorism_done
+#globalterrorism_done
 ```
 
 
 ## World map with all locations of terrorism attacks
 
 We created a map with and set a geom_point for each location of a terrorism attack. In the dataset we have the longitude and latitude coordinates of each terrorism attack. With these coordinates we can set a point on the map.
-We also animated the map by cycling through the years. This helps with the the overall visibility of the map.
+We also animated the map by cycling through the years. This helps with the the overall visibility of the map. If a terrorism attack has been avoided the point is green. Otherwise the point will be colored red. 
 
 WARNING: The compilation of this map may take a few minutes!
 
@@ -98,7 +106,7 @@ globalterrorism_coordinates <- globalterrorism_done %>% filter(!is.na(globalterr
 
 # We have found out that one of the coordinates has been added incorrect. Therefore we are also filtering that out.
 globalterrorism_coordinates <- globalterrorism_coordinates %>% filter(globalterrorism_coordinates$longitude > -180)
-globalterrorism_coordinates
+#globalterrorism_coordinates
 
 # Create start and end variables for the animation
 map_animation_start <- tibble(iyear = 1969, longitude = 0, latitude = 0)
@@ -114,7 +122,7 @@ points_map <- ggplot() + geom_sf(data = map_base) +
   geom_point(aes(x = longitude, y = latitude,
                  frame = iyear,
                  cumulative = TRUE),
-             data = globalterrorism_coordinates, colour = "purple",  size = 1) +
+             data = globalterrorism_coordinates, colour = ifelse(globalterrorism_coordinates$success == 1, "red", "green"),  size = 1) +
   geom_point(aes(x = longitude, y = latitude,
                  frame = iyear,
                  cumulative = TRUE),
@@ -141,7 +149,29 @@ gganimate(points_map, interval = 0.2)
 The Global Terrorism Database (GTD) lost the data of the year 1993 due to a compilation error. That's why we don't have any data from that particular year.
 
 ```{r}
-tibble( unique(globalterrorism_done$iyear), (globalterrorism_done$iyear))
-ggplot(data = globalterrorism_done, mapping = aes(iyear, sum(iyear))) +
-  geom_bar(stat = "identity")
+tibble(unique(globalterrorism_done$iyear), table(globalterrorism_done$iyear))
+
+ggplot(data = globalterrorism_done) +
+  geom_bar(mapping = aes(x = iyear, fill = factor(success))) +
+  labs(fill = "Success (1 = Attack was successful)") +
+  xlab("Years") +
+  ylab("Amount of attacks") +
+  ggtitle("Number of terrorism attacks")
+```
+
+
+## Amount of victims 
+
+
+```{r fig.height=8, fig.width=15}
+globalterrorism_kill <- globalterrorism_done %>% filter(!is.na(nkill)) 
+
+
+ggplot(data = globalterrorism_kill) +
+  geom_bar(mapping = aes(x = iyear, y = nkill, fill = factor(region_txt)), alpha = 0.7, stat = "identity") +
+  scale_fill_manual(values = c("purple", "blue", "cyan", "pink", "brown", "red", "green", "orange", "yellow", "limegreen", "plum", "aquamarine")) +
+  labs(fill = "Region") +
+  xlab("Years") +
+  ylab("Amount of victims") +
+  ggtitle("Amount of victims for each year")
 ```

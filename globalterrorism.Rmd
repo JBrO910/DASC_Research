@@ -108,7 +108,8 @@ We created a map and set a point for each location of a terrorism attack.
 In the dataset we have the longitude and latitude coordinates of each 
 terrorism attack. With these coordinates we can set a point on the map.
 We also animated the map by cycling through the years. This helps with the the 
-overall visibility of the map.
+overall visibility of the map. If a terrorism attack has been avoided the point
+is green. Otherwise the point will be colored red. 
 
 WARNING: The compilation of this map may take a few minutes!
 
@@ -157,20 +158,46 @@ gganimate(points_map, interval = 0.2)
 
 ## Number of terrorism attacks every year (excluding 1993)
 
-```{r}
-ggplot(data = globalterrorism_done, mapping = aes(iyear)) +
-  geom_bar(stat = "count")
-```
+We also checked how many terrorism attacks were successful for each year. 
+Each bar has two colors for that.
+We discovered that more terrorism attacks were unsuccessful over
+the years. It makes sense, because anti terrorism units (GSG-9, GIGN) have 
+been founded and security measures (airport controls) are now better 
+than they used to be.
 
+```{r fig.height=8, fig.width=15}
+tibble(unique(globalterrorism_done$iyear), table(globalterrorism_done$iyear))
+
+ggplot(data = globalterrorism_done) +
+  geom_bar(mapping = aes(x = iyear, fill = factor(success))) +
+  labs(fill = "Success (1 = Attack was successful)") +
+  xlab("Years") +
+  ylab("Amount of attacks") +
+  ggtitle("Number of terrorism attacks")
+```
 
 ## Amount of victims 
 
+Like the number of terrorism-diagram we are using a bar chart, but this 
+time we check how many people fell victim to terrorism attacks over the years.
+The bars are colored after the region where the attack took place. 
+In the 1980s there is a high amount of victims in Central and South America.
+This mostly relates to the drug wars, which were at their highest point during 
+this period, and the civil war in El Salvador.
+You can also see the beginning an increase of victims in the middle east during 
+the 1990s, which results from the aftermath of the second gulf war.
+The increase of victims from North America in 2001 mostly relates to 9/11 with 
+almost 3000 victims.
+2014 had the most victims by far. Reason for that is the war in Syria and the 
+rise of ISIS.
 
-```{r}
+```{r fig.height=8, fig.width=15}
 globalterrorism_kill <- globalterrorism_done %>% filter(!is.na(nkill)) 
 
-ggplot(data = globalterrorism_kill, mapping = aes(x = iyear, y = nkill)) +
-  geom_bar(stat = "identity") +
+ggplot(data = globalterrorism_kill) +
+  geom_bar(mapping = aes(x = iyear, y = nkill, fill = factor(region_txt)), alpha = 0.7, stat = "identity") +
+  scale_fill_manual(values = c("purple", "blue", "cyan", "pink", "brown", "red", "green", "orange", "yellow", "limegreen", "plum", "aquamarine")) +
+  labs(fill = "Region") +
   xlab("Years") +
   ylab("Amount of victims") +
   ggtitle("Amount of victims for each year")
