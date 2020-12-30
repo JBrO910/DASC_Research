@@ -119,6 +119,7 @@ globalterrorism_coordinates <- globalterrorism_done %>% filter(!is.na(globalterr
 
 # We have found out that one of the coordinates has been added incorrect. Therefore we are also filtering that out.
 globalterrorism_coordinates <- globalterrorism_coordinates %>% filter(globalterrorism_coordinates$longitude > -180)
+#globalterrorism_coordinates
 
 # Create start and end variables for the animation
 map_animation_start <- tibble(iyear = 1969, longitude = 0, latitude = 0)
@@ -134,7 +135,7 @@ points_map <- ggplot() + geom_sf(data = map_base) +
   geom_point(aes(x = longitude, y = latitude,
                  frame = iyear,
                  cumulative = TRUE),
-             data = globalterrorism_coordinates, colour = "purple",  size = 1) +
+             data = globalterrorism_coordinates, colour = ifelse(globalterrorism_coordinates$success == 1, "red", "green"),  size = 1) +
   geom_point(aes(x = longitude, y = latitude,
                  frame = iyear,
                  cumulative = TRUE),
