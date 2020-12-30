@@ -73,7 +73,6 @@ if (!file.exists("globalterrorism_dataset.zip")) {
 }
 
 globalterrorism <- read.csv("globalterrorism.csv", na.strings = c("", "NA"), header = TRUE)
-#globalterrorism
 ```
 
 ## Deleting columns with more than 90% missing values
@@ -98,8 +97,12 @@ na_percentage_table <- data.frame(na_count_table, na_percentage)
 # Filtering so that only the rows exist that are have less than 90 % missing values
 na_percentage_filtered <- subset(na_percentage_table, na_percentage_table$na_percentage < 0.90)
 
-# Removal of the columns
-globalterrorism_done <- globalterrorism %>% select(one_of(na_percentage_filtered$rn))
+# Removal of the columns and creating a date column
+globalterrorism_done <- globalterrorism %>% 
+  select(one_of(na_percentage_filtered$rn)) %>%
+  mutate(date = make_date(iyear, imonth, iday)) %>%
+  mutate_if(is.integer, ~replace(., is.na(.), 0)) %>%
+  filter(!is.na(date))
 ```
 
 ## World map with all locations of terrorism attacks
@@ -202,4 +205,30 @@ ggplot(data = globalterrorism_kill) +
   xlab("Years") +
   ylab("Amount of victims") +
   ggtitle("Amount of victims for each year")
+```
+
+
+```{r fig.height=8, fig.width=15}
+# Suicide is a new variable
+
+globalterrorism_suicide <- globalterrorism_done %>%
+  filter(suicide == TRUE)
+
+amount_suicide = tibble(unique(globalterrorism_suicide$iyear), table(globalterrorism_suicide$iyear))
+amount_suicide <- rename(amount_suicide, nsuicide = `table(globalterrorism_suicide$iyear)`)
+
+amount_kill <- globalterrorism_suicide %>%
+  group_by(iyear) %>%
+  summarise(nkills = sum(nkill))
+
+amount = tibble(amount_kill, amount_suicide$nsuicide)
+
+ggplot(data = amount, mapping = aes(x = iyear)) +
+     geom_line(mapping = aes(y = `amount_suicide$nsuicide`, colour = "Blue"), size = 1.5) +
+     geom_line(mapping = aes(y = nkills, colour = "Red"), size = 1.5) +
+     scale_color_discrete(name = "Y Series", labels = c("Amount of suicides", "Amount of victims")) +
+     xlab("Years") +
+     ylab("Amount") +
+     ggtitle("Amount of suicides attacks and victims per year")
+
 ```
