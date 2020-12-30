@@ -23,7 +23,8 @@ attacks around the world.
 
 Our research question is: Have terrorism attacks developed over the years?
 We are going to focus with the regions of the terrorism attacks, if they 
-succeeded or not and look if the amount of victims increased or decreased.
+succeeded or not, look if the amount of victims increased or decreased and we 
+looked at the suicide attack statistics.
 These variables are dependent on the year of the attack. 
 
 
@@ -44,6 +45,7 @@ we can visualize them in a map. Therefore we use the libraries "ggmap" and
 #install.packages("ggmap")
 #install.packages("mapdata")
 #install.packages("devtools")
+#install.packages("lubridate")
 #install_github("thomasp85/gganimate", ref = "v0.1.1")
 #install.packages("https://github.com/thomasp85/gganimate/archive/v0.1.1.tar.gz", repos = NULL, type = "source")
 
@@ -55,6 +57,7 @@ library(sf)
 library(ggmap)
 library(mapdata)
 library(gganimate)
+library(lubridate)
 ```
 
 
@@ -208,15 +211,31 @@ ggplot(data = globalterrorism_kill) +
 ```
 
 
-```{r fig.height=8, fig.width=15}
-# Suicide is a new variable
+## Amount of suicide attacks and victims over the years 
 
+We have made two graphs dependent on the suicide attacks. The red graph shows 
+how many suicide attacks happened over the years and the blue one shows the 
+amount of people who fell victim to these attacks.
+The first suicide attack that has been registered occurred in 1981. From that 
+point on, the amount of attacks steadily increased over the time. 2016 had the 
+most attacks.
+The first bump of victims occurred in 1983 through the Beirut barracks bombings
+in Lebanon with over 300 victims. The next increase of victims belongs to 
+the attack on the 11th of September 2001 on the Twin Towers. The next 
+bump of victims is in 2007. This mostly relates to the occupation of Iraq by 
+the US and British armed forces. 2016 had also the most victims that mostly 
+relates to the Syrian war.
+
+```{r fig.height=8, fig.width=15}
+# Filter all suicide attacks
 globalterrorism_suicide <- globalterrorism_done %>%
   filter(suicide == TRUE)
 
+# Count the number of suicide attacks for each year
 amount_suicide = tibble(unique(globalterrorism_suicide$iyear), table(globalterrorism_suicide$iyear))
 amount_suicide <- rename(amount_suicide, nsuicide = `table(globalterrorism_suicide$iyear)`)
-
+ 
+# Count the number of kill of suicide attacks
 amount_kill <- globalterrorism_suicide %>%
   group_by(iyear) %>%
   summarise(nkills = sum(nkill))
@@ -226,9 +245,9 @@ amount = tibble(amount_kill, amount_suicide$nsuicide)
 ggplot(data = amount, mapping = aes(x = iyear)) +
      geom_line(mapping = aes(y = `amount_suicide$nsuicide`, colour = "Blue"), size = 1.5) +
      geom_line(mapping = aes(y = nkills, colour = "Red"), size = 1.5) +
-     scale_color_discrete(name = "Y Series", labels = c("Amount of suicides", "Amount of victims")) +
+     scale_color_discrete(name = "Y Series", labels = c("Amount of suicide attacks", "Amount of victims")) +
      xlab("Years") +
      ylab("Amount") +
-     ggtitle("Amount of suicides attacks and victims per year")
+     ggtitle("Amount of suicides attacks and victims over the years")
 
 ```
