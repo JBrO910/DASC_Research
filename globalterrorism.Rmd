@@ -3,8 +3,8 @@ title: "Global_Terrorism"
 author: "Jonathan Brocksieper & Torben Westphalen"
 date: "12/16/2020"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -47,7 +47,8 @@ we can visualize them in a map. Therefore we use the libraries "ggmap" and
 #install.packages("devtools")
 #install.packages("lubridate")
 #install_github("thomasp85/gganimate", ref = "v0.1.1")
-#install.packages("https://github.com/thomasp85/gganimate/archive/v0.1.1.tar.gz", repos = NULL, type = "source")
+#install.packages("https://github.com/thomasp85/gganimate/archive/v0.1.1.tar.gz"
+#, repos = NULL, type = "source")
 
 #library("devtools")
 library(data.table)
@@ -70,12 +71,14 @@ is.na easier. This helps us tidying up the dataset.
 
 ```{r}
 if (!file.exists("globalterrorism_dataset.zip")) {
-    download.file("https://github.com/JBrO910/DASC_Research/raw/main/globalterrorism_dataset.zip",
+    download.file(paste("https://github.com/JBrO910/DASC_Research/raw/main/",
+                        "globalterrorism_dataset.zip", sep = ""),
                   "globalterrorism_dataset.zip")
     unzip("globalterrorism_dataset.zip")
 }
 
-globalterrorism <- read.csv("globalterrorism.csv", na.strings = c("", "NA"), header = TRUE)
+globalterrorism <- read.csv("globalterrorism.csv", na.strings = c("", "NA"), 
+                            header = TRUE)
 ```
 
 ## Deleting columns with more than 90% missing values
@@ -94,12 +97,17 @@ na_count <- data.frame(na_count)
 na_count_table <- setDT(na_count, keep.rownames = TRUE)[]
 na_count_table <- data.frame(na_count_table)
 
-# Calculate the percentage of missing values. Limit to two decimals after the dot.
-na_percentage <- sapply(na_count_table$na_count, function(x) as.double(format(round( x/nrow(globalterrorism ), 2), nsmall = 2)))
+# Calculate the percentage of missing values.
+# Limit to two decimals after the dot.
+na_percentage <- sapply(na_count_table$na_count, 
+                        function(x) as.double(format(round(
+                          x/nrow(globalterrorism ), 2), nsmall = 2)))
 na_percentage_table <- data.frame(na_count_table, na_percentage)
 
-# Filtering so that only the rows exist that are have less than 90 % missing values
-na_percentage_filtered <- subset(na_percentage_table, na_percentage_table$na_percentage < 0.90)
+# Filtering so that only the rows exist that are have less than 90 % missing 
+# values
+na_percentage_filtered <- subset(na_percentage_table, 
+                                 na_percentage_table$na_percentage < 0.90)
 
 # Removal of the columns and creating a date column
 globalterrorism_done <- globalterrorism %>% 
@@ -121,11 +129,15 @@ is green. Otherwise the point will be colored red.
 WARNING: The compilation of this map may take a few minutes!
 
 ```{r}
-# Retrieving all coordinates from the dataset. But the NA values have to be filtered out first.
-globalterrorism_coordinates <- globalterrorism_done %>% filter(!is.na(globalterrorism_done$longitude)) 
+# Retrieving all coordinates from the dataset. But the NA values have to be 
+# filtered out first.
+globalterrorism_coordinates <- globalterrorism_done %>% 
+  filter(!is.na(globalterrorism_done$longitude)) 
 
-# We have found out that one of the coordinates has been added incorrect. Therefore we are also filtering that out.
-globalterrorism_coordinates <- globalterrorism_coordinates %>% filter(globalterrorism_coordinates$longitude > -180)
+# We have found out that one of the coordinates has been added incorrect. 
+# Therefore we are also filtering that out.
+globalterrorism_coordinates <- globalterrorism_coordinates %>% 
+  filter(globalterrorism_coordinates$longitude > -180)
 #globalterrorism_coordinates
 
 # Create start and end variables for the animation
@@ -137,12 +149,16 @@ map_base <- map("worldHires", fill = T, plot = F)
 map_base <- st_as_sf(map_base)
 map_base <- st_make_valid(map_base)
 
-# Adding the points to the map. The start and end variables for the animation are also added here. We are also doing additional labeling for longitude and latitude.
+# Adding the points to the map. The start and end variables for the animation 
+# are also added here. We are also doing additional labeling for longitude and 
+# latitude.
 points_map <- ggplot() + geom_sf(data = map_base) + 
   geom_point(aes(x = longitude, y = latitude,
                  frame = iyear,
                  cumulative = TRUE),
-             data = globalterrorism_coordinates, colour = ifelse(globalterrorism_coordinates$success == 1, "red", "green"),  size = 1) +
+             data = globalterrorism_coordinates, 
+             colour = ifelse(globalterrorism_coordinates$success == 1,
+                             "red", "green"),  size = 1) +
   geom_point(aes(x = longitude, y = latitude,
                  frame = iyear,
                  cumulative = TRUE),
@@ -208,8 +224,11 @@ rise of ISIS.
 globalterrorism_kill <- globalterrorism_done %>% filter(!is.na(nkill)) 
 
 ggplot(data = globalterrorism_kill) +
-  geom_bar(mapping = aes(x = iyear, y = nkill, fill = factor(region_txt)), alpha = 0.7, stat = "identity") +
-  scale_fill_manual(values = c("purple", "blue", "cyan", "pink", "brown", "red", "green", "orange", "yellow", "limegreen", "plum", "aquamarine")) +
+  geom_bar(mapping = aes(x = iyear, y = nkill, fill = factor(region_txt)), 
+           alpha = 0.7, stat = "identity") +
+  scale_fill_manual(values = c("purple", "blue", "cyan", "pink", "brown", 
+                               "red", "green", "orange", "yellow", "limegreen",
+                               "plum", "aquamarine")) +
   scale_x_continuous(breaks = seq(1970, 2020, 5)) +
   scale_y_continuous(breaks = seq(0, 45000, 2500)) +
   labs(fill = "Region") +
@@ -241,8 +260,10 @@ globalterrorism_suicide <- globalterrorism_done %>%
   filter(suicide == TRUE)
 
 # Count the number of suicide attacks for each year
-amount_suicide = tibble(unique(globalterrorism_suicide$iyear), table(globalterrorism_suicide$iyear))
-amount_suicide <- rename(amount_suicide, nsuicide = `table(globalterrorism_suicide$iyear)`)
+amount_suicide = tibble(unique(globalterrorism_suicide$iyear), 
+                        table(globalterrorism_suicide$iyear))
+amount_suicide <- rename(amount_suicide, 
+                         nsuicide = `table(globalterrorism_suicide$iyear)`)
  
 # Count the number of kill of suicide attacks
 amount_kill <- globalterrorism_suicide %>%
@@ -252,13 +273,17 @@ amount_kill <- globalterrorism_suicide %>%
 amount = tibble(amount_kill, amount_suicide$nsuicide)
 
 ggplot(data = amount, mapping = aes(x = iyear)) +
-     geom_line(mapping = aes(y = `amount_suicide$nsuicide`, colour = "blue"), size = 1.5) +
+     geom_line(mapping = aes(y = `amount_suicide$nsuicide`, colour = "blue"), 
+               size = 1.5) +
      geom_line(mapping = aes(y = nkills, colour = "red"), size = 1.5) +
-     geom_point(mapping = aes(y = `amount_suicide$nsuicide`), colour = "gray40", size = 2) +
+     geom_point(mapping = aes(y = `amount_suicide$nsuicide`), colour = "gray40", 
+                size = 2) +
      geom_point(mapping = aes(y = nkills), colour = "gray40", size = 2) +
      scale_x_continuous(breaks = seq(1970, 2020, 5)) +
      scale_y_continuous(breaks = seq(0, 11000, 500)) +
-     scale_color_discrete(name = "Y Series", labels = c("Amount of suicide attacks", "Amount of victims")) +
+     scale_color_discrete(name = "Y Series", 
+                          labels = c("Amount of suicide attacks",
+                                     "Amount of victims")) +
      xlab("Years") +
      ylab("Amount") +
      ggtitle("Amount of suicides attacks and victims over the years")
