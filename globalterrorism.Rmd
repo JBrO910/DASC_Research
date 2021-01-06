@@ -68,6 +68,7 @@ We have uploaded a compressed zip file to a public repository, just in case that
 the dataset gets removed from our source.  
 We are also replacing the empty cells with "NA" cells to make the use of the 
 is.na easier. This helps us tidying up the dataset.
+The dataset will be referred as "gtm" from us.
 
 ```{r}
 if (!file.exists("globalterrorism_dataset.zip")) {
@@ -77,7 +78,7 @@ if (!file.exists("globalterrorism_dataset.zip")) {
     unzip("globalterrorism_dataset.zip")
 }
 
-globalterrorism <- read.csv("globalterrorism.csv", na.strings = c("", "NA"), 
+gtm <- read.csv("globalterrorism.csv", na.strings = c("", "NA"), 
                             header = TRUE)
 ```
 
@@ -90,7 +91,7 @@ columns that have enough cells with useful data.
 
 ```{r}
 #Calculate the number of NA values in each column
-na_count <- sapply(globalterrorism, function(y) sum(length(which(is.na(y)))))
+na_count <- sapply(gtm, function(y) sum(length(which(is.na(y)))))
 na_count <- data.frame(na_count)
 
 # Get row name as a column 
@@ -101,7 +102,7 @@ na_count_table <- data.frame(na_count_table)
 # Limit to two decimals after the dot.
 na_percentage <- sapply(na_count_table$na_count, 
                         function(x) as.double(format(round(
-                          x/nrow(globalterrorism ), 2), nsmall = 2)))
+                          x/nrow(gtm ), 2), nsmall = 2)))
 na_percentage_table <- data.frame(na_count_table, na_percentage)
 
 # Filtering so that only the rows exist that are have less than 90 % missing 
@@ -110,7 +111,7 @@ na_percentage_filtered <- subset(na_percentage_table,
                                  na_percentage_table$na_percentage < 0.90)
 
 # Removal of the columns and creating a date column
-globalterrorism_done <- globalterrorism %>% 
+gtm_done <- gtm %>% 
   select(one_of(na_percentage_filtered$rn)) %>%
   mutate(date = make_date(iyear, imonth, iday)) %>%
   mutate_if(is.integer, ~replace(., is.na(.), 0)) %>%
@@ -131,14 +132,13 @@ WARNING: The compilation of this map may take a few minutes!
 ```{r}
 # Retrieving all coordinates from the dataset. But the NA values have to be 
 # filtered out first.
-globalterrorism_coordinates <- globalterrorism_done %>% 
-  filter(!is.na(globalterrorism_done$longitude)) 
+gtm_coordinates <- gtm_done %>% 
+  filter(!is.na(gtm_done$longitude)) 
 
 # We have found out that one of the coordinates has been added incorrect. 
 # Therefore we are also filtering that out.
-globalterrorism_coordinates <- globalterrorism_coordinates %>% 
-  filter(globalterrorism_coordinates$longitude > -180)
-#globalterrorism_coordinates
+gtm_coordinates <- gtm_coordinates %>% 
+  filter(gtm_coordinates$longitude > -180)
 
 # Create start and end variables for the animation
 map_animation_start <- tibble(iyear = 1969, longitude = 0, latitude = 0)
@@ -156,8 +156,8 @@ points_map <- ggplot() + geom_sf(data = map_base) +
   geom_point(aes(x = longitude, y = latitude,
                  frame = iyear,
                  cumulative = TRUE),
-             data = globalterrorism_coordinates, 
-             colour = ifelse(globalterrorism_coordinates$success == 1,
+             data = gtm_coordinates, 
+             colour = ifelse(gtm_coordinates$success == 1,
                              "red", "green"),  size = 1) +
   geom_point(aes(x = longitude, y = latitude,
                  frame = iyear,
@@ -186,14 +186,14 @@ We also checked how many terrorism attacks were successful for each year.
 Each bar has two colors for that.
 
 We discovered that more terrorism attacks were unsuccessful over
-the years. It makes sense, because anti terrorism units (GSG-9, GIGN) have 
+the years. We assume the reason is that anti terrorism units (GSG-9, GIGN) have 
 been founded and security measures (airport controls) are now better 
 than they used to be.
 
 ```{r fig.height=8, fig.width=15}
-tibble(unique(globalterrorism_done$iyear), table(globalterrorism_done$iyear))
+tibble(unique(gtm_done$iyear), table(gtm_done$iyear))
 
-ggplot(data = globalterrorism_done) +
+ggplot(data = gtm_done) +
   geom_bar(mapping = aes(x = iyear, fill = factor(success))) +
   scale_x_continuous(breaks = seq(1970, 2020, 5)) +
   scale_y_continuous(breaks = seq(0, 20000, 1000)) +
@@ -221,9 +221,9 @@ rise of ISIS.
 
 ```{r fig.height=8, fig.width=15}
 # Filter NA values of the column out
-globalterrorism_kill <- globalterrorism_done %>% filter(!is.na(nkill)) 
+gtm_kill <- gtm_done %>% filter(!is.na(nkill)) 
 
-ggplot(data = globalterrorism_kill) +
+ggplot(data = gtm_kill) +
   geom_bar(mapping = aes(x = iyear, y = nkill, fill = factor(region_txt)), 
            alpha = 0.7, stat = "identity") +
   scale_fill_manual(values = c("purple", "blue", "cyan", "pink", "brown", 
@@ -235,6 +235,14 @@ ggplot(data = globalterrorism_kill) +
   xlab("Years") +
   ylab("Amount of victims") +
   ggtitle("Amount of victims for each year")
+
+# Table filtered to prove our statements regarding the attacks in the 1980s
+gtm_drugwar <- gtm_kill %>% 
+  filter(iyear %in% (1980:1990), region %in% c(2,3))
+
+# Table for the 9/11 terrorism attacks
+gtm_northamerica <- gtm_kill %>%
+  filter(date == "2001-09-11", country == 217)
 ```
 
 
@@ -252,21 +260,21 @@ in Lebanon with over 300 victims. The next increase of victims belongs to
 the attack on the 11th of September 2001 on the Twin Towers. The next 
 bump of victims is in 2007. This mostly relates to the occupation of Iraq by 
 the US and British armed forces. 2016 had also the most victims that mostly 
-relates to the Syrian war.
+relates to terrorism attacks from ISIS and Boko Haram.
 
 ```{r fig.height=8, fig.width=15}
 # Filter all suicide attacks
-globalterrorism_suicide <- globalterrorism_done %>%
+gtm_suicide <- gtm_done %>%
   filter(suicide == TRUE)
 
 # Count the number of suicide attacks for each year
-amount_suicide = tibble(unique(globalterrorism_suicide$iyear), 
-                        table(globalterrorism_suicide$iyear))
+amount_suicide = tibble(unique(gtm_suicide$iyear), 
+                        table(gtm_suicide$iyear))
 amount_suicide <- rename(amount_suicide, 
-                         nsuicide = `table(globalterrorism_suicide$iyear)`)
+                         nsuicide = `table(gtm_suicide$iyear)`)
  
 # Count the number of kill of suicide attacks
-amount_kill <- globalterrorism_suicide %>%
+amount_kill <- gtm_suicide %>%
   group_by(iyear) %>%
   summarise(nkills = sum(nkill))
 
@@ -288,6 +296,18 @@ ggplot(data = amount, mapping = aes(x = iyear)) +
      ylab("Amount") +
      ggtitle("Amount of suicides attacks and victims over the years")
 
+# Table for Beirut barracks bombings in 1983
+gtm_beirut <- gtm_suicide %>%
+  filter(date == "1983-10-23")
+
+# Table for terrorism attacks in Iraq for the year 2007
+gtm_iraq <- gtm_suicide %>%
+  filter(iyear == 2007, country == 95)
+
+# Table for terrorism attacks from ISIS and Boko Haram for the year 2016 
+gtm_isis_bokoharam <- gtm_suicide %>%
+  filter(iyear == 2016, gname == "Boko Haram" | 
+           gname == "Islamic State of Iraq and the Levant (ISIL)")
 ```
 
 ## Summaration of the dataset and answering the research question
