@@ -245,6 +245,50 @@ gtm_northamerica <- gtm_kill %>%
   filter(date == "2001-09-11", country == 217)
 ```
 
+## Amount of victims from the Middle East and North Africa
+
+As we have seen already in the bar chart diagram above, there has been an 
+increase of victims in the Middle East and North Africa over the years. We have
+taken a deeper look into that, by calculating the amount of victims in that 
+region for each year.
+
+It turns out, there is indeed an increase of victims in that region. The red 
+line indicates the linear increase of victims over the years. They may have 
+been some years who are below or above the line, but there is a clear increase 
+visible.
+
+```{r fig.height=8, fig.width=15}
+# Filter the region for Middle East and North Africa out
+gtm_middle_east <- gtm_kill %>% filter(region == 10)
+
+# Count the number of terrorism attacks per year
+gtm_middle_east_year = tibble(unique(gtm_middle_east$iyear), 
+                         table(gtm_middle_east$iyear))
+
+gtm_middle_east_year <- rename(gtm_middle_east_year,
+                             nattacks = `table(gtm_middle_east$iyear)`)
+
+# Calculate the amount of kills per year
+amount_middle_east_kill <- gtm_middle_east %>% 
+  group_by(iyear) %>%
+  summarise(nkills = sum(nkill))
+
+amount_middle_east <- tibble(amount_middle_east_kill,
+                             gtm_middle_east_year$nattacks)
+
+# Create a linear regression model out of the calculated kills 
+model <- lm(nkills ~ iyear, amount_middle_east)
+plot(nkills ~ iyear, amount_middle_east,
+     main = "Amount of kills in the Middle East and North Africa for each year",
+     ylim = c(0, 21000), xlim = c(1970, 2020),
+     xlab = "Years", ylab = "Number of kills", 
+     pch = 16, col = "gray40")
+axis(side = 1, at = seq(1970, 2020, by = 5))
+axis(side = 2, at = seq(0, 20000, by = 2500))
+abline(model, lty = 1, col = "red", lwd = 2)
+text(nkills ~ iyear, labels = nkills, 
+     data = amount_middle_east, pos = 1, cex = 0.75)
+```
 
 ## Amount of suicide attacks and victims over the years 
 
