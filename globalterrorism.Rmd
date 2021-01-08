@@ -38,7 +38,7 @@ Since we have a focus on the location of the terrorism attacks, we thought that
 we can visualize them in a map. Therefore we use the libraries "ggmap" and 
 "mapdata".
 
-```{r}
+```{r packages}
 #remove.packages("gganimate")
 #install.packages("data.table")
 #install.packages("sf")
@@ -70,7 +70,7 @@ We are also replacing the empty cells with "NA" cells to make the use of the
 is.na easier. This helps us tidying up the dataset.
 The dataset will be referred as "gtm" from us.
 
-```{r}
+```{r import_data}
 if (!file.exists("globalterrorism_dataset.zip")) {
     download.file(paste("https://github.com/JBrO910/DASC_Research/raw/main/",
                         "globalterrorism_dataset.zip", sep = ""),
@@ -89,7 +89,7 @@ almost none filled rows. So we decided that all columns that have more than
 90 % missing values shall be removed. Our intention is that we only use the 
 columns that have enough cells with useful data.
 
-```{r}
+```{r tidy_data}
 #Calculate the number of NA values in each column
 na_count <- sapply(gtm, function(y) sum(length(which(is.na(y)))))
 na_count <- data.frame(na_count)
@@ -129,7 +129,7 @@ is green. Otherwise the point will be colored red.
 
 WARNING: The compilation of this map may take a few minutes!
 
-```{r}
+```{r map}
 # Retrieving all coordinates from the dataset. But the NA values have to be 
 # filtered out first.
 gtm_coordinates <- gtm_done %>% 
@@ -190,7 +190,7 @@ the years. We assume the reason is that anti terrorism units (GSG-9, GIGN) have
 been founded and security measures (airport controls) are now better 
 than they used to be.
 
-```{r fig.height=8, fig.width=15}
+```{r amount, fig.height=8, fig.width=15}
 tibble(unique(gtm_done$iyear), table(gtm_done$iyear))
 
 ggplot(data = gtm_done) +
@@ -219,7 +219,7 @@ almost 3000 victims.
 2014 had the most victims by far. Reason for that is the war in Syria and the 
 rise of ISIS.
 
-```{r fig.height=8, fig.width=15}
+```{r victims, fig.height=8, fig.width=15}
 # Filter NA values of the column out
 gtm_kill <- gtm_done %>% filter(!is.na(nkill)) 
 
@@ -257,7 +257,7 @@ line indicates the linear increase of victims over the years. They may have
 been some years who are below or above the line, but there is a clear increase 
 visible.
 
-```{r fig.height=8, fig.width=15}
+```{r middle_east, fig.height=8, fig.width=15}
 # Filter the region for Middle East and North Africa out
 gtm_middle_east <- gtm_kill %>% filter(region == 10)
 
@@ -280,7 +280,6 @@ amount_middle_east <- tibble(amount_middle_east_kill,
 model <- lm(nkills ~ iyear, amount_middle_east)
 plot(nkills ~ iyear, amount_middle_east,
      main = "Amount of kills in the Middle East and North Africa for each year",
-     ylim = c(0, 21000), xlim = c(1970, 2020),
      xlab = "Years", ylab = "Number of kills", 
      pch = 16, col = "gray40")
 axis(side = 1, at = seq(1970, 2020, by = 5))
@@ -306,7 +305,7 @@ bump of victims is in 2007. This mostly relates to the occupation of Iraq by
 the US and British armed forces. 2016 had also the most victims that mostly 
 relates to terrorism attacks from ISIS and Boko Haram.
 
-```{r fig.height=8, fig.width=15}
+```{r suicide, fig.height=8, fig.width=15}
 # Filter all suicide attacks
 gtm_suicide <- gtm_done %>%
   filter(suicide == TRUE)
@@ -355,9 +354,17 @@ gtm_isis_bokoharam <- gtm_suicide %>%
 ```
 ## Amount of victims from terrorism attacks that have relations to other attacks
 
+We also took a look at all terrorism attacks who are related with each other.
+There are almost 25.000 attacks that have one relation with another attack or 
+more. We calculated the amount of the kills for each year. 
 
+There are a few years who do not have a single terrorism attack with a relation 
+to another. Once again, the attacks of 9/11 are visible here, since there were 
+four different attacks that are all related (see gtm_northamerica). The most 
+people died in over the last years. This results that the graph shows a linear 
+increase.
 
-```{r fig.height=8, fig.width=15}
+```{r victim_related, fig.height=8, fig.width=15}
 # Filter the region for Middle East and North Africa out
 gtm_related <- gtm_done %>% filter(!is.na(related)) 
 
@@ -379,11 +386,10 @@ amount_related <- tibble(amount_related_kill,
 model <- lm(nkills ~ iyear, amount_related)
 plot(nkills ~ iyear, amount_related,
      main = "Amount of kills in the Middle East and North Africa for each year",
-     ylim = c(0, 21000), xlim = c(1970, 2020),
      xlab = "Years", ylab = "Number of kills", 
      pch = 16, col = "gray40")
 axis(side = 1, at = seq(1970, 2020, by = 5))
-axis(side = 2, at = seq(0, 20000, by = 2500))
+axis(side = 2, at = seq(0, 10000, by = 1000))
 abline(model, lty = 1, col = "red", lwd = 2)
 text(nkills ~ iyear, labels = nkills, 
      data = amount_related, pos = 1, cex = 0.75)
