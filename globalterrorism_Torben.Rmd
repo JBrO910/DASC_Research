@@ -371,26 +371,50 @@ gtm_all_kills <- create_tibble(gtm_lm)
 
 ```
 
-```{r}
-
-#model <- lm(nkills ~ iyear, amount_middle_east)
-#plot(nkills ~ iyear, amount_middle_east,
-#     main = "Amount of kills in the Middle East and North Africa for each year",
-#     xlab = "Years", ylab = "Number of kills", 
-#     pch = 16, col = "gray40")
-#abline(model, lty = 1, col = "red", lwd = 2)
-#text(nkills ~ iyear, labels = nkills, 
-#     data = amount_middle_east, pos = 1, cex = 0.8)
-
-a <- "200012240033, 200012240001, 200012240002, 200012240003, 200012240004, 200012240005, 200012240006, 200012240007, 200012240008, 200012240009, 200012240010, 200012240011, 200012240012, 200012240013, 200012240014, 200012240015, 200012240016, 200012240017, 200012240018, 200012240019, 200012240020, 200012240021, 200012240022, 200012240023, 200012240024, 200012240025, 200012240026, 200012240027, 200012240028, 200012240029, 200012240030, 200012240031, 200012240032, \\200012240034, 200012240035, 200012240036, 200012240037, 200012240038, 200012240039"
-
-
-str_replace_all(a, "[^0-9a-zA-Z,]+", "")
-
-
-a
-#gsub("\\*", "", a)
+```{r fig.height=8, fig.width=15}
+gtm_tibble <- function(data) {
+  # Count the number of terrorism attacks per year
+  gtm_amount_attacks = tibble(iyear = unique(data$iyear), 
+                              amount = table(data$iyear))
+  
+  # Calculate the amount of kills per year
+  gtm_amount_kill <- data %>% 
+    group_by(iyear) %>%
+    summarise(nkills = sum(nkill))
+  
+  amount <- tibble(gtm_amount_kill, gtm_amount_attacks$amount)
+  
+  return(amount)
+}
 
 
-#gtm_lm_done <- tibble(year = year_kill$iyear, kills = year_kill$nkills) # easy naming of column !!!!!!!
+gtm_lr <- function(data, maintxt, yname, yend, yseparator) {
+  amount <- gtm_tibble(data)
+  
+  # Create a linear regression model out of the calculated kills 
+  model <- lm(nkills ~ iyear, amount)
+  plot(nkills ~ iyear, amount,
+       main = maintxt,
+       xlab = "Years", ylab = yname, 
+       pch = 16, col = "gray40")
+  axis(side = 1, at = seq(1970, 2020, by = 5))
+  axis(side = 2, at = seq(0, yend, by = yseparator))
+  abline(model, lty = 1, col = "red", lwd = 2)
+  text(nkills ~ iyear, labels = nkills, 
+       data = amount, pos = 1, cex = 0.75)
+}
+
+
+gtm_related <- gtm_done %>% filter(!is.na(related)) 
+gtm_lr(gtm_related, 
+       "Amount of kills which are related to other attacks", 
+       "Number of kills", 10000, 1000)
+
+# Filter the region for Middle East and North Africa out
+gtm_kill <- gtm_done %>% filter(!is.na(nkill)) 
+gtm_middle_east <- gtm_kill %>% filter(region == 10)
+gtm_lr(gtm_middle_east, 
+       "Amount of kills in the Middle East and North Africa for each year", 
+       "Number of kills", 20000, 2500)
+
 ```

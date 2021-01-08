@@ -32,30 +32,34 @@ These variables are dependent on the year of the attack.
 
 These are libraries we are going to use for our research. We are using an older
 version (v0.1.1) of the "gganimate" package since the new one has not been well 
-documented for our needs.
+documented for our needs. If you already have a newer version of this package, 
+please remove it before running the package chunk!
 
 Since we have a focus on the location of the terrorism attacks, we thought that
 we can visualize them in a map. Therefore we use the libraries "ggmap" and 
 "mapdata".
 
 ```{r packages}
-#remove.packages("gganimate")
-#install.packages("data.table")
-#install.packages("sf")
+install.packages("data.table")
+install.packages("sf")
 #install.packages("ggmap")
-#install.packages("mapdata")
-#install.packages("devtools")
-#install.packages("lubridate")
-#install_github("thomasp85/gganimate", ref = "v0.1.1")
-#install.packages("https://github.com/thomasp85/gganimate/archive/v0.1.1.tar.gz"
-#, repos = NULL, type = "source")
+install.packages("mapdata")
+install.packages("devtools")
+install.packages("lubridate")
+install.packages("rlang")
 
-#library("devtools")
+library(rlang)
+library(devtools)
+
+install_github("thomasp85/gganimate", ref = "v0.1.1")
+install.packages("https://github.com/thomasp85/gganimate/archive/v0.1.1.tar.gz",
+                 repos = NULL, type = "source")
+
 library(data.table)
 library(dplyr)
 library(ggplot2)
 library(sf)
-library(ggmap)
+#library(ggmap)
 library(mapdata)
 library(gganimate)
 library(lubridate)
@@ -78,8 +82,7 @@ if (!file.exists("globalterrorism_dataset.zip")) {
     unzip("globalterrorism_dataset.zip")
 }
 
-gtm <- read.csv("globalterrorism.csv", na.strings = c("", "NA"), 
-                            header = TRUE)
+gtm <- read.csv("globalterrorism.csv", na.strings = c("", "NA"), header = TRUE)
 ```
 
 ## Deleting columns with more than 90% missing values
@@ -245,6 +248,50 @@ gtm_northamerica <- gtm_kill %>%
   filter(date == "2001-09-11", country == 217)
 ```
 
+## Functions
+
+This chunks contains two function. The first function calculates the amount of 
+rows and the total amount of victims per year. The function returns the result 
+in form of a tibble.
+
+The second functions provides us the possibility to generate a linear regression
+model out of the first function. We are also able to format the model in terms 
+of title and y-axis.
+
+```{r functions}
+gtm_tibble <- function(data) {
+  # Count the number of terrorism attacks per year
+  gtm_amount_attacks = tibble(iyear = unique(data$iyear), 
+                              amount = table(data$iyear))
+  
+  # Calculate the amount of kills per year
+  gtm_amount_kill <- data %>% 
+    group_by(iyear) %>%
+    summarise(nkills = sum(nkill))
+  
+  amount <- tibble(gtm_amount_kill, gtm_amount_attacks$amount)
+  
+  return(amount)
+}
+
+gtm_lr <- function(data, maintxt, yend, yseparator) {
+  amount <- gtm_tibble(data)
+  
+  # Create a linear regression model out of the calculated kills 
+  model <- lm(nkills ~ iyear, amount)
+  plot(nkills ~ iyear, amount,
+       main = maintxt,
+       xlab = "Years", ylab = "Number of victims", 
+       pch = 16, col = "gray40")
+  axis(side = 1, at = seq(1970, 2020, by = 5))
+  axis(side = 2, at = seq(0, yend, by = yseparator))
+  abline(model, lty = 1, col = "red", lwd = 2)
+  text(nkills ~ iyear, labels = nkills, 
+       data = amount, pos = 1, cex = 0.75)
+}
+```
+
+
 ## Amount of victims from the Middle East and North Africa
 
 As we have seen already in the bar chart diagram above, there has been an 
@@ -261,32 +308,9 @@ visible.
 # Filter the region for Middle East and North Africa out
 gtm_middle_east <- gtm_kill %>% filter(region == 10)
 
-# Count the number of terrorism attacks per year
-gtm_middle_east_year = tibble(unique(gtm_middle_east$iyear), 
-                         table(gtm_middle_east$iyear))
-
-gtm_middle_east_year <- rename(gtm_middle_east_year,
-                             nattacks = `table(gtm_middle_east$iyear)`)
-
-# Calculate the amount of kills per year
-amount_middle_east_kill <- gtm_middle_east %>% 
-  group_by(iyear) %>%
-  summarise(nkills = sum(nkill))
-
-amount_middle_east <- tibble(amount_middle_east_kill,
-                             gtm_middle_east_year$nattacks)
-
-# Create a linear regression model out of the calculated kills 
-model <- lm(nkills ~ iyear, amount_middle_east)
-plot(nkills ~ iyear, amount_middle_east,
-     main = "Amount of kills in the Middle East and North Africa for each year",
-     xlab = "Years", ylab = "Number of kills", 
-     pch = 16, col = "gray40")
-axis(side = 1, at = seq(1970, 2020, by = 5))
-axis(side = 2, at = seq(0, 20000, by = 2500))
-abline(model, lty = 1, col = "red", lwd = 2)
-text(nkills ~ iyear, labels = nkills, 
-     data = amount_middle_east, pos = 1, cex = 0.75)
+gtm_lr(gtm_middle_east, 
+       "Amount of victims in the Middle East and North Africa for each year", 
+       20000, 2500)
 ```
 
 ## Amount of suicide attacks and victims over the years 
@@ -307,27 +331,14 @@ relates to terrorism attacks from ISIS and Boko Haram.
 
 ```{r suicide, fig.height=8, fig.width=15}
 # Filter all suicide attacks
-gtm_suicide <- gtm_done %>%
-  filter(suicide == TRUE)
-
-# Count the number of suicide attacks for each year
-amount_suicide = tibble(unique(gtm_suicide$iyear), 
-                        table(gtm_suicide$iyear))
-amount_suicide <- rename(amount_suicide, 
-                         nsuicide = `table(gtm_suicide$iyear)`)
- 
-# Count the number of kill of suicide attacks
-amount_kill <- gtm_suicide %>%
-  group_by(iyear) %>%
-  summarise(nkills = sum(nkill))
-
-amount = tibble(amount_kill, amount_suicide$nsuicide)
+gtm_suicide <- gtm_done %>% filter(suicide == TRUE)
+amount <- gtm_tibble(gtm_suicide)
 
 ggplot(data = amount, mapping = aes(x = iyear)) +
-     geom_line(mapping = aes(y = `amount_suicide$nsuicide`, colour = "blue"), 
+     geom_line(mapping = aes(y = `gtm_amount_attacks$amount`, colour = "blue"), 
                size = 1.5) +
      geom_line(mapping = aes(y = nkills, colour = "red"), size = 1.5) +
-     geom_point(mapping = aes(y = `amount_suicide$nsuicide`), colour = "gray40", 
+     geom_point(mapping = aes(y = `gtm_amount_attacks$amount`), colour = "gray40", 
                 size = 2) +
      geom_point(mapping = aes(y = nkills), colour = "gray40", size = 2) +
      scale_x_continuous(breaks = seq(1970, 2020, 5)) +
@@ -368,33 +379,10 @@ increase.
 # Filter the region for Middle East and North Africa out
 gtm_related <- gtm_done %>% filter(!is.na(related)) 
 
-# Count the number of terrorism attacks per year
-gtm_related_amount = tibble(iyear = unique(gtm_related$iyear), 
-                            amount = table(gtm_related$iyear))
-
-
-
-# Calculate the amount of kills per year
-amount_related_kill <- gtm_related %>% 
-  group_by(iyear) %>%
-  summarise(nkills = sum(nkill))
-
-amount_related <- tibble(amount_related_kill,
-                             gtm_related_amount$amount)
-
-# Create a linear regression model out of the calculated kills 
-model <- lm(nkills ~ iyear, amount_related)
-plot(nkills ~ iyear, amount_related,
-     main = "Amount of kills in the Middle East and North Africa for each year",
-     xlab = "Years", ylab = "Number of kills", 
-     pch = 16, col = "gray40")
-axis(side = 1, at = seq(1970, 2020, by = 5))
-axis(side = 2, at = seq(0, 10000, by = 1000))
-abline(model, lty = 1, col = "red", lwd = 2)
-text(nkills ~ iyear, labels = nkills, 
-     data = amount_related, pos = 1, cex = 0.75)
+gtm_lr(gtm_related, 
+       "Amount of victims which are related to other attacks", 
+       10000, 1000)
 ```
-
 
 ## Summaration of the dataset and answering the research question
 
