@@ -224,13 +224,12 @@ ggplot(data = amount, mapping = aes(x = iyear)) +
 
 ```
 
-```{r fig.height=8, fig.width=10}
-find_combinations <- list()
+```{r TotalKills, fig.height=8, fig.width=10}
+found_combinations <- data.frame(c())
 
-get_from_id  <- function(data, id, column) {
+get_from_id <- function(data, id, column) {
   filtered <- gtm_lm %>% 
     filter(eventid == id)
-  
   # 1. row, n. column
   return(filtered[1, column])
 }
@@ -240,122 +239,158 @@ get_kills <- function(data, id) {
 }
 
 get_related_ids <- function(data, id) { 
-  ids = get_from_id(data, id, 73); # 73. column = related
-  return(strsplit(ids, ", ")[[1]]) # separate at ", " and store in an array
+  return(get_from_id(data, id, 73)); # 73. column = related
 }
 
-calculate_kills <- function(data, id) {
-  related <- get_related_ids(data, id)
-  total_kills = 0
+get_related_ids_formatted <- function(data, id) {
+  ids = get_related_ids(data, id);
+  ids <- str_replace_all(ids, "[^0-9a-zA-Z,]+", "")
+  return(get_related_ids_formatted_string(ids))
+}
+
+get_related_ids_formatted_string <- function(ids) {
+  return(strsplit(ids, ",")[[1]]) # separate at ", " and store in an array
+}
+
+store_combination <- function(combination) {
+  related <- data.frame(combination)
+  names(related) <- c("combination")
+  found_combinations <<- rbind(found_combinations, related)
+}
+
+# Returns True, if the related attacks already taken into account, otherwise false
+is_attacks_used <- function(ids) {
+  if (length(found_combinations) == 0) {
+    return(FALSE)
+  }
   
-  for(i in find_combinations) {
-    amount_found = 0
+  for(i in 1:nrow(found_combinations)) {
+    value <- found_combinations[i,1]
     
-    for (j in i) {
-      for (k in related) {
+    found_value <- get_related_ids_formatted_string(value)
+    matches = 0
+  
+    for (j in found_value) {
+      for (k in ids) {
         if (j == k) {
-          amount_found = amount_found + 1
+          matches = matches + 1
         }
       }
     }
     
-    if (amount_found == length(i)) {
-      return(total_kills - 1)
+    if (matches == length(found_value)) {
+      return(TRUE)
     }
+  }
+  
+  return(FALSE)
+}
+
+# Calculates the kills related to the certain attack,
+# excluding the kills from the attack itself
+calculate_kills <- function(data, id) {
+  related <- get_related_ids_formatted(data, id)
+  total_kills = 0
+  
+  if (is_attacks_used(related)) {
+    return(total_kills)
   }
   
   for (i in related) {
     if (i != id) {
-      total_kills = total_kills + get_kills(data, id)
+      total_kills = total_kills + get_kills(data, i)
     }
   }
+  
+  store_combination(get_related_ids(data, id))
   
   return(total_kills)
 }
 
+get_total_kills <- function(data, year) {
+  gtm_year <- data %>% filter(iyear == year)
+  
+  kills <- 0
+  
+  for(i in 1:nrow(gtm_year)) {
+    id <- gtm_year[i,1]
+    
+    kills = kills + calculate_kills(gtm_year, id)
+  }
+  
+  # Clear combinations for the next year
+  found_combinations <<- data.frame(c())
+  
+  return(kills)
+}
+
+#install.packages("sjmisc") -- dont forget to include
+#library(sjmisc)
+#install.packages("stringr")
+#library(stringr)
 
 
 gtm_lm <- globalterrorism_done %>%
-  filter(!is.na(nkill)) %>%
-  filter(!is.na(related))
+  mutate_if(is.integer, ~replace(., is.na(.), 0)) %>%
+  filter(!is.na(related)) %>%
+  filter(str_contains(related, eventid)) 
 
+t <- get_total_kills(gtm_lm, 1972)
 
-test <- calculate_kills(gtm_lm$eventid)
+t
 
-#year_kill <- gtm_lm %>%
-#  mutate(total_kills = calculate_kills(gtm_lm$eventid))
+create_tibble <- function(data) {
+  years <- data.frame()
   
-#year_total_kill <- gtm_lm %>%
+  vec <- c(1970:1992,1994:2017)
+  
+  for (i in seq_along(vec)) {
+    print(vec[i])
+    kills <- get_total_kills(data, vec[i])
+    print(kills)
+    
+    year_kill <- data.frame(vec[i], kills)
+    names(year_kill) <- c("year", "kills")
+    years <- rbind(years, year_kill)
+  }
+  
+  return(years)
+}
+
+gtm_all_kills <- create_tibble(gtm_lm)
+
+
+#gtm_test_year <- gtm_lm %>% filter(iyear == 1972)
+
+#amount_kill <- gtm_lm %>%
+#  filter(iyear == 1971) %>%
 #  group_by(iyear) %>%
-#  summarise(total_kills = sum(calculate_kills(id = gtm_lm$eventid)))
+#  summarise(total_kills = sum(calculate_kills(gtm_lm, eventid)))
 
-#gtm_lm_done <- tibble(year = unique(gtm_lm$iyear), nkill = gtm_lm$nkill, total_kills = calculate_kills(gtm_lm$eventid))
-
-gtm_lm_done <- tibble(year = year_kill$iyear, kills = year_kill$nkills) # easy naming of column !!!!!!!
-
-#ggplot(gtm_lm, aes(x = iyear, y = calculate_kills(id = eventid))) +
-#  stat_summary(fun.data = mean_cl_normal) + 
-#  geom_smooth(method = 'lm', formula = y~x)
-
-# X1 = Gestorbene Menschen an Anschlag N
-# X2 = Zusätzlich gestorbene Menschen an Anschlag N (Wo ein Anschlaf bezogen auf N ist)
-# Y = X1 + X2 (Die gesamte Anzahl der gestorbenen Menschen an Anschalg N)
-
-
-#linearmodel <- lm(total ~ nkill + calculate_kills(id = eventid), data = gtm_lm)
-#predicted_kill <- data.frame(lin_pred = predict(linearmodel, gtm_lm), nkill = gtm_lm$nkill)
-
-#ggplot(data = gtm_lm, aes(x = iyear, y = total)) + 
-#  geom_point(color='blue') +
-#  geom_line(color='red', data = predicted_kill, aes(x = lin_pred, y = nkill))
-
-
-
-# create multiple linear model
-#lm_fit <- lm(mpg ~ cyl + hp, data=df)
-#summary(lm_fit)
-
-# save predictions of the model in the new data frame 
-# together with variable you want to plot against
-#predicted_df <- data.frame(mpg_pred = predict(lm_fit, df), hp=df$hp)
-
-# this is the predicted line of multiple linear regression
-#ggplot(data = df, aes(x = mpg, y = hp)) + 
-#  geom_point(color='blue') +
-#  geom_line(color='red',data = predicted_df, aes(x=mpg_pred, y=hp))
-
-
-#killsFirst = get_kills(gtm_lm, 201406080006)
-#ids = get_related_ids(gtm_lm, 197001300001)
-
-#test <- c("a", "b", "c")
-
-#test
-#ids
-
+#amount_kill
 
 ```
 
 ```{r}
-first <- c(1, 2, 3)
-second <- c(4, 5)
 
-usedIds <- list(first, second)
+#model <- lm(nkills ~ iyear, amount_middle_east)
+#plot(nkills ~ iyear, amount_middle_east,
+#     main = "Amount of kills in the Middle East and North Africa for each year",
+#     xlab = "Years", ylab = "Number of kills", 
+#     pch = 16, col = "gray40")
+#abline(model, lty = 1, col = "red", lwd = 2)
+#text(nkills ~ iyear, labels = nkills, 
+#     data = amount_middle_east, pos = 1, cex = 0.8)
 
-class(usedIds) <- "UsedIds"
-
-usedIds
-
-
-
-get_kills.UsedIds <- function(data, id) {
-  filtered <- gtm_lm %>% 
-    filter(eventid == id)
-  
-  # 1. row, 51. column
-  return(filtered[1,51])
-}
+a <- "200012240033, 200012240001, 200012240002, 200012240003, 200012240004, 200012240005, 200012240006, 200012240007, 200012240008, 200012240009, 200012240010, 200012240011, 200012240012, 200012240013, 200012240014, 200012240015, 200012240016, 200012240017, 200012240018, 200012240019, 200012240020, 200012240021, 200012240022, 200012240023, 200012240024, 200012240025, 200012240026, 200012240027, 200012240028, 200012240029, 200012240030, 200012240031, 200012240032, \\200012240034, 200012240035, 200012240036, 200012240037, 200012240038, 200012240039"
 
 
-test = get_kills(gtm_lm, 201406080006)
+str_replace_all(a, "[^0-9a-zA-Z,]+", "")
+
+
+a
+#gsub("\\*", "", a)
+
+
+#gtm_lm_done <- tibble(year = year_kill$iyear, kills = year_kill$nkills) # easy naming of column !!!!!!!
 ```
