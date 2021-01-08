@@ -223,3 +223,139 @@ ggplot(data = amount, mapping = aes(x = iyear)) +
      ggtitle("Amount of suicides attacks and victims per year")
 
 ```
+
+```{r fig.height=8, fig.width=10}
+find_combinations <- list()
+
+get_from_id  <- function(data, id, column) {
+  filtered <- gtm_lm %>% 
+    filter(eventid == id)
+  
+  # 1. row, n. column
+  return(filtered[1, column])
+}
+
+get_kills <- function(data, id) {
+  return(get_from_id(data, id, 51)) # 51. column = nkill
+}
+
+get_related_ids <- function(data, id) { 
+  ids = get_from_id(data, id, 73); # 73. column = related
+  return(strsplit(ids, ", ")[[1]]) # separate at ", " and store in an array
+}
+
+calculate_kills <- function(data, id) {
+  related <- get_related_ids(data, id)
+  total_kills = 0
+  
+  for(i in find_combinations) {
+    amount_found = 0
+    
+    for (j in i) {
+      for (k in related) {
+        if (j == k) {
+          amount_found = amount_found + 1
+        }
+      }
+    }
+    
+    if (amount_found == length(i)) {
+      return(total_kills - 1)
+    }
+  }
+  
+  for (i in related) {
+    if (i != id) {
+      total_kills = total_kills + get_kills(data, id)
+    }
+  }
+  
+  return(total_kills)
+}
+
+
+
+gtm_lm <- globalterrorism_done %>%
+  filter(!is.na(nkill)) %>%
+  filter(!is.na(related))
+
+
+test <- calculate_kills(gtm_lm$eventid)
+
+#year_kill <- gtm_lm %>%
+#  mutate(total_kills = calculate_kills(gtm_lm$eventid))
+  
+#year_total_kill <- gtm_lm %>%
+#  group_by(iyear) %>%
+#  summarise(total_kills = sum(calculate_kills(id = gtm_lm$eventid)))
+
+#gtm_lm_done <- tibble(year = unique(gtm_lm$iyear), nkill = gtm_lm$nkill, total_kills = calculate_kills(gtm_lm$eventid))
+
+gtm_lm_done <- tibble(year = year_kill$iyear, kills = year_kill$nkills) # easy naming of column !!!!!!!
+
+#ggplot(gtm_lm, aes(x = iyear, y = calculate_kills(id = eventid))) +
+#  stat_summary(fun.data = mean_cl_normal) + 
+#  geom_smooth(method = 'lm', formula = y~x)
+
+# X1 = Gestorbene Menschen an Anschlag N
+# X2 = Zusätzlich gestorbene Menschen an Anschlag N (Wo ein Anschlaf bezogen auf N ist)
+# Y = X1 + X2 (Die gesamte Anzahl der gestorbenen Menschen an Anschalg N)
+
+
+#linearmodel <- lm(total ~ nkill + calculate_kills(id = eventid), data = gtm_lm)
+#predicted_kill <- data.frame(lin_pred = predict(linearmodel, gtm_lm), nkill = gtm_lm$nkill)
+
+#ggplot(data = gtm_lm, aes(x = iyear, y = total)) + 
+#  geom_point(color='blue') +
+#  geom_line(color='red', data = predicted_kill, aes(x = lin_pred, y = nkill))
+
+
+
+# create multiple linear model
+#lm_fit <- lm(mpg ~ cyl + hp, data=df)
+#summary(lm_fit)
+
+# save predictions of the model in the new data frame 
+# together with variable you want to plot against
+#predicted_df <- data.frame(mpg_pred = predict(lm_fit, df), hp=df$hp)
+
+# this is the predicted line of multiple linear regression
+#ggplot(data = df, aes(x = mpg, y = hp)) + 
+#  geom_point(color='blue') +
+#  geom_line(color='red',data = predicted_df, aes(x=mpg_pred, y=hp))
+
+
+#killsFirst = get_kills(gtm_lm, 201406080006)
+#ids = get_related_ids(gtm_lm, 197001300001)
+
+#test <- c("a", "b", "c")
+
+#test
+#ids
+
+
+```
+
+```{r}
+first <- c(1, 2, 3)
+second <- c(4, 5)
+
+usedIds <- list(first, second)
+
+class(usedIds) <- "UsedIds"
+
+usedIds
+
+
+
+get_kills.UsedIds <- function(data, id) {
+  filtered <- gtm_lm %>% 
+    filter(eventid == id)
+  
+  # 1. row, 51. column
+  return(filtered[1,51])
+}
+
+
+test = get_kills(gtm_lm, 201406080006)
+```
