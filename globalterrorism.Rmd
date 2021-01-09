@@ -42,7 +42,7 @@ we can visualize them in a map. Therefore we use the libraries "ggmap" and
 ```{r packages}
 install.packages("data.table")
 install.packages("sf")
-#install.packages("ggmap")
+install.packages("ggmap")
 install.packages("mapdata")
 install.packages("devtools")
 install.packages("lubridate")
@@ -59,7 +59,7 @@ library(data.table)
 library(dplyr)
 library(ggplot2)
 library(sf)
-#library(ggmap)
+library(ggmap)
 library(mapdata)
 library(gganimate)
 library(lubridate)
@@ -182,20 +182,22 @@ points_map <- ggplot() + geom_sf(data = map_base) +
 gganimate(points_map, interval = 0.2) 
 ```
 
-
 ## Number of terrorism attacks every year (excluding 1993)
 
 We also checked how many terrorism attacks were successful for each year. 
-Each bar has two colors for that.
+Therefore we created a bar chart which shows the amount of terrorism attacks 
+for each year. We colored each bar in two colors. Light blue indicates that the
+attack was successful and red the opposite. Then we took a deeper look in the 
+success rate, by creating a graph which shows the percentage of avoided 
+terrorism attacks for each year.
 
-We discovered that more terrorism attacks were unsuccessful over
-the years. We assume the reason is that anti terrorism units (GSG-9, GIGN) have 
-been founded and security measures (airport controls) are now better 
-than they used to be.
+We discovered that more terrorism attacks were unsuccessful over the last years.
+We assume the reason is that security measures (airport controls) are now better
+than they used to be. 1972 had the most terrorism attacks that were not
+successful. our assumption is that anti terrorism units (GSG-9, GIGN) have been
+founded, after the attacks at the 1972 olympics.
 
 ```{r amount, fig.height=8, fig.width=15}
-tibble(unique(gtm_done$iyear), table(gtm_done$iyear))
-
 ggplot(data = gtm_done) +
   geom_bar(mapping = aes(x = iyear, fill = factor(success))) +
   scale_x_continuous(breaks = seq(1970, 2020, 5)) +
@@ -204,6 +206,24 @@ ggplot(data = gtm_done) +
   xlab("Years") +
   ylab("Amount of attacks") +
   ggtitle("Number of terrorism attacks")
+
+gtm_not_success <- gtm_done %>% filter(success == 0)
+
+gtm_not_success_tibble <- tibble(year = unique(gtm_done$iyear),
+                                 amount = table(gtm_done$iyear), 
+                                 not_success = table(gtm_not_success$iyear))
+
+not_success_data <- gtm_not_success_tibble %>% 
+  mutate(perc = not_success / amount)
+
+ggplot(data = not_success_data, mapping = aes(x = year, y = perc)) +
+  geom_point(stat = "identity") +
+  geom_line(col = "red") +
+  scale_y_continuous(labels = scales::percent, breaks = seq(0, 0.2, 0.01)) + 
+  scale_x_continuous(breaks = seq(1970, 2020, 5)) +
+  ylab("Percentage") +
+  xlab("Years") +
+  ggtitle("Percentage of avoided terrorism attacks over the years")
 ```
 
 ## Amount of victims 
@@ -279,6 +299,7 @@ gtm_lr <- function(data, maintxt, yend, yseparator) {
   
   # Create a linear regression model out of the calculated kills 
   model <- lm(nkills ~ iyear, amount)
+  
   plot(nkills ~ iyear, amount,
        main = maintxt,
        xlab = "Years", ylab = "Number of victims", 
@@ -288,6 +309,8 @@ gtm_lr <- function(data, maintxt, yend, yseparator) {
   abline(model, lty = 1, col = "red", lwd = 2)
   text(nkills ~ iyear, labels = nkills, 
        data = amount, pos = 1, cex = 0.75)
+  
+  return(model)
 }
 ```
 
@@ -308,9 +331,11 @@ visible.
 # Filter the region for Middle East and North Africa out
 gtm_middle_east <- gtm_kill %>% filter(region == 10)
 
-gtm_lr(gtm_middle_east, 
+model_middle_east <- gtm_lr(gtm_middle_east, 
        "Amount of victims in the Middle East and North Africa for each year", 
        20000, 2500)
+
+summary(model_middle_east)
 ```
 
 ## Amount of suicide attacks and victims over the years 
@@ -379,9 +404,11 @@ increase.
 # Filter the region for Middle East and North Africa out
 gtm_related <- gtm_done %>% filter(!is.na(related)) 
 
-gtm_lr(gtm_related, 
+model_related <- gtm_lr(gtm_related, 
        "Amount of victims which are related to other attacks", 
        10000, 1000)
+
+summary(model_related)
 ```
 
 ## Summaration of the dataset and answering the research question
