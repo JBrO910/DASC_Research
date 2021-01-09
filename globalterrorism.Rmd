@@ -93,7 +93,7 @@ almost none filled rows. So we decided that all columns that have more than
 columns that have enough cells with useful data.
 
 ```{r tidy_data}
-#Calculate the number of NA values in each column
+# Calculate the number of NA values in each column
 na_count <- sapply(gtm, function(y) sum(length(which(is.na(y)))))
 na_count <- data.frame(na_count)
 
@@ -165,11 +165,11 @@ points_map <- ggplot() + geom_sf(data = map_base) +
   geom_point(aes(x = longitude, y = latitude,
                  frame = iyear,
                  cumulative = TRUE),
-             data = map_animation_start, colour = "purple", size = 0) +
+             data = map_animation_start, size = 0) +
   geom_point(aes(x = longitude, y = latitude,
                  frame = iyear,
                  cumulative = TRUE),
-             data = map_animation_end, colour = "purple", size = 0) +
+             data = map_animation_end, size = 0) +
   labs(x = "Longitude", y = "Latitude", fill = "") +
   theme_bw() +
   theme(panel.grid = element_line(colour = "transparent"),
